@@ -1,0 +1,211 @@
+{%- set resource_media_count = data.widget.resource_card_media.items.length %}
+{%- set colSplit = data.options.column_split %}
+{%- set card_classes = '' %}
+{%- if colSplit == undefined or colSplit == true %}
+  {%- set column_class= 'col-md-3' %}
+  {%- if data.options.column_count == '3' %}
+    {%- set column_class= 'col-md-4' %}
+  {%- endif %}
+  {%- set card_classes = 'col-sm-4 '+column_class %}
+  {%- if data.user and data.locale and data.locale.includes('-draft') %}
+    {%- set card_classes = 'inline-resource-card' %}
+  {%- endif %}
+{%- endif %}
+{#- 
+  Taking the width as 1120px as that will be almost equal to the l-page width after removing padding 
+  also subtracting 15px from the width to take in account the margin between resource
+  cards.
+#}
+{%- set resource_card_width = 1120/data.options.column_count - 15 %}
+{%- if data.options.is_filter_present === 'yes' %} 
+{#- Taking this width because when filter is present the available width for resource card  is almost 810px #}
+  {%- set resource_card_width = 810/data.options.column_count - 15 %}
+{%- endif %}
+{%- if data.widget.resource_card_variant == 'courses' %}
+  <span class="card-item {{ 'no-data-link' if data.options.no_data_link }}" 
+  href="{{data.widget.link_href or '#'}}" {{'target = "_blank"' if data.widget.new_tab === true }} 
+  {%- if data.widget.filter_tag %} tags="{{module.getTags(data.widget.filter_tag)}}" {%- endif %} 
+  data-filter="card-item">
+{#- if the resource card opens a model then the target is set accordingly #}
+{%- elif data.widget.modal == 'yes' and resource_media_count == 0 %}
+  <a class="card-item {{ 'gated-card' if data.widget.gated_modal === 'yes' }} {{ 'no-data-link' if data.options.no_data_link }}"
+    data-toggle='modal' 
+    data-target='#{{data.widget.target_modal}}' 
+    {%- if data.widget.gated_modal === 'yes' %}
+      data-local-storage-key={{('fw_' + data.widget.local_storage_key) if data.widget.local_storage_key }}
+      {%- if data.widget.after_gate === 'modal_content' %} 
+        data-success-modal="#{{data.widget.target_modal_after_signup}}" 
+      {%- elif data.widget.after_gate === 'redirect' %}
+        {%- set redirect_url = apos.fwUtils.setLink(data.widget)%}
+        data-success-redirect="{{redirect_url}}"
+        target="{{ '_blank' if data.widget.is_link_new_tab else '_self' }}"
+      {%- endif %}
+    {%- endif %}
+    {%- if data.widget.filter_tag %} tags="{{module.getTags(data.widget.filter_tag)}}" {%- endif %}
+    {%- if data.widget.filters.length %}
+    {%- for filter in data.widget.filters %}
+      data-filter-{{ apos.fwUtils.convertToHTMLAttribute(filter.filter_type) }}-{{ apos.fwUtils.convertToHTMLAttribute(filter.filter_name) }}="{{ filter.filter_value }}"
+    {%- endfor %}
+  {%- endif %}
+  data-filter="card-item">
+{%- elif data.widget.link_href | length and resource_media_count == 0 %}
+  <a class="card-item {{ 'no-data-link' if data.options.no_data_link }}" href="{{data.widget.link_href or '#'}}" {{'target="_blank"' if data.widget.new_tab === true }} 
+  {%- if data.widget.filters.length %}
+    {%- for filter in data.widget.filters %}
+      data-filter-{{ apos.fwUtils.convertToHTMLAttribute(filter.filter_type) }}-{{ apos.fwUtils.convertToHTMLAttribute(filter.filter_name) }}="{{ filter.filter_value }}"
+    {%- endfor %}
+  {%- endif %}
+  {%- if data.widget.filter_tag %} tags="{{module.getTags(data.widget.filter_tag)}}" {%- endif %}
+  {%- if data.widget.link_rel %} rel="nofollow" {%- endif %}
+  data-filter="card-item">
+{%- endif %}
+  <div {%- if data.widget.modal == 'yes' %} onclick="location.href='#{{data.widget.target_modal}}'" {%- endif %} class="card-box {{card_classes}} {{ 'resource-casestudy' if data.options.align_center }}" 
+    {#- 
+      This inline style is being added to improve the editing experience as if we use
+      col-md-4/3 the edit toolbar for resource card is not visible properly due to the 
+      float nature of bootstrap col-md-* classes, here in draft mode we will use  display 
+      inline for resource card and give a calculated width allowing the edit toolbar to be 
+      visible for editing.
+    #}
+    {%- if data.user and data.locale and data.locale.includes('-draft') %}
+      style="width: {{resource_card_width}}px;"
+    {%- endif %}
+    {%- if data.widget.filters.length %}
+      {%- for filter in data.widget.filters %}
+        data-filter-{{ apos.fwUtils.convertToHTMLAttribute(filter.filter_type) }}-{{ apos.fwUtils.convertToHTMLAttribute(filter.filter_name) }}="{{ filter.filter_value }}"
+      {%- endfor %}
+    {%- endif %}>
+    <div class="resource-box"
+      {%- if resource_media_count > 0 and data.widget.resource_card_media.items[0].type == 'fw-slideshare' %}
+          data-toggle="modal" data-target="#{{data.widget.resource_card_media.items[0].embed_id}}"
+      {%- endif %}>
+      {%- if data.widget.tag | length %}
+        <span class="tag tag-new">{{ data.widget.tag }}</span>
+      {%- endif %}
+      <div class="resource-box-left">
+        {%- if data.widget.image.items | length %}
+          {{
+            apos.singleton(data.widget, 'image', 'fw-lazy-image', {
+              image_classes: 'resources-box-image',
+              skip_optimization: true
+            })
+          }}
+        {%- endif %}
+        {%- if resource_media_count > 0 and data.widget.resource_card_media.items[0].type == 'fw-video' %}
+          {{
+            apos.singleton(data.widget,
+            'resource_card_media',
+            'fw-video',
+            {
+              render_type:'controller',
+              container_type: 'pop_up',
+              play_button_type: 'play-icon-container'
+            })
+          }}
+        {%- endif %}
+      </div>
+      <div class="resource-box-right {{ 'course-card' if data.widget.resource_card_variant == 'courses'}}">
+        {{
+          apos.area(data.widget, 'resource_box_content', {
+            widgets: {
+              'apostrophe-rich-text':{
+                options: {
+                    toolbar: ['Styles', 'Undo', 'Redo', 'Bold', 'Italic', 'BulletedList'],
+                    styles: apos.fwUtils.richTextConfig([
+                      {
+                        name: 'h5 - dark',
+                        element: 'h5',
+                        attributes: {
+                          class: 'resource-heading-dark'
+                        }
+                      },
+                      'h5',
+                      'p-with-ellipsis',
+                      'p-with-ellipsis-gray',
+                      'p',
+                      'f-link',
+                      {
+                        name: 'Brand Story',
+                        element: 'p',
+                        attributes: {
+                          class: 'brand-story-content'
+                        }
+                      }
+                    ])
+                  }
+                }
+              },
+              edit: false, 
+              contextual: true
+          })
+        }}
+        {%- if data.widget.course_time %}
+        <div class="time-duration">
+          <i class="icon-time"></i> {{data.widget.course_time}}
+        </div>
+        {%- endif %}
+        {%- if data.widget.resource_bottom_content.items | length %}
+          <div class="pt-sm">
+            {{
+              apos.area(data.widget, 'resource_bottom_content', {
+                widgets: {
+                  'fw-button': {},
+                  'apostrophe-rich-text':{
+                    options: {
+                        toolbar: ['Styles', 'Undo', 'Redo', 'Bold', 'Italic', 'BulletedList'],
+                        styles: apos.fwUtils.richTextConfig([
+                          {
+                            name: 'text inactive',
+                            element: 'div',
+                            attributes: {
+                              class: 'text-inactive'
+                            }
+                          }
+                        ])
+                      }
+                    }
+                  },
+                  edit: false,
+                  contextual: true
+              })
+            }}
+          </div>
+        {%- endif %}
+      </div>
+    </div>
+    {%- if resource_media_count > 0 %}
+      {{
+        apos.area(data.widget, 'resource_card_media', {
+          widgets: {
+            'fw-slideshare':{},
+            'fw-video':{
+              render_type:'content',
+              container_type: 'pop_up'
+            }
+          }
+        })
+      }}
+    {%- endif %}
+    {%- if data.widget.button.items | length %}
+      {{
+        apos.singleton(
+          data.widget,
+          'button',
+          'fw-section-buttons',
+          {}
+        )
+      }}
+    {%- endif %}
+  </div>
+{%- if data.widget.resource_card_variant == 'courses' %}
+</span>
+{%- elif data.widget.modal == 'yes' or data.widget.link_href | length and resource_media_count == 0 %}
+  </a>
+{%- endif %}
+{%- if resource_media_count > 0 and data.widget.resource_card_media.items[0].type == 'fw-slideshare' %}
+  <script type="text/javascript">
+    FW.onLoad(function () {
+      FW.modalbox();
+    });
+  </script>
+{%- endif %}

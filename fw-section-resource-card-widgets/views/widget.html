@@ -1,0 +1,104 @@
+{%- if data.widget.section_spacing %}
+  {%- set spacing_classes = apos.fwUtils.setSectionSpacing(data.widget.section_spacing) %}
+{%- else %}
+  {#-
+    This is necessary to cover cases where the value is not set.
+    For example, when 'skipInitialModal' is set to true, the
+    widget gets rendered without any of these values in place. In
+    such cases, the section editing experience becomes poor and
+    this fallback is important.
+  #}
+  {%- set spacing_classes = 'l-section' %}
+{%- endif %}
+{%- set is_filter = 'no' %}
+{%- if data.widget.is_filter == 'yes' %}
+  {%- set is_filter = 'yes' %}
+  {%- set resource_cards = data.widget.resource_cards.items %}
+  {%- set resource_cards_tags = module.getResourceCardsTags(resource_cards) %}
+  {%- set resource_cards_filters = module.getResourceFilters(resource_cards) %}
+  {%- set unique_filter_id = 'filter' + apos.fwUtils.generateRandomID() %}
+{%- endif %}
+{%- set cards_column_count = data.widget.cards_column_count or '4' %}
+<section id="{{ data.widget.section_target }}" class="{{spacing_classes}} {{data.widget.section_bg}} {{'hide' if data.widget.section_display }} casestudy-resource-section {{ 'first-fold' if data.options.first_fold }}" data-scroll-target="{{ data.widget.section_target }}" >
+  {%- if data.user %}
+    {%- import 'fw-macros/draft.html' as draftMacros %}
+    {{draftMacros.printWidgetType(data)}}
+  {%- endif %}
+  <div id="{{unique_filter_id}}" class="l-page container {{'align-center' if data.widget.align_center }} {{'calendar-sections explore' if data.widget.is_calendar_section}}">
+    {%- if data.widget.heading_align_center %}
+      <div class="l-section-heading align-center">
+    {%- endif %}
+    {%- if data.widget.section_header_content.items | length %}
+      {{
+        apos.singleton(
+          data.widget,
+          'section_header_content',
+          'apostrophe-rich-text',
+          {
+            toolbar: ['Styles', 'Undo', 'Redo', 'Bold', 'Italic'],
+            styles: [{
+              name: 'Heading (align-center)',
+              element: 'h2',
+              attributes: {
+              class: 'align-center'
+              }
+            },
+            {
+              name: 'Heading',
+              element: 'h2'
+            }]
+          }
+        )
+      }}
+    {%- endif %}
+    {%- if data.widget.heading_align_center %}
+      </div>
+    {%- endif %}
+
+    <div class="row">
+      {%- if is_filter == 'yes' %}
+      <div class="col-md-3 partner-dropdown-outer podcast-filter-section {{ 'sticky' if data.widget.card_filter.items.length > 0 and data.widget.card_filter.items[0].type != 'fw-multi-criteria-filter' }}">
+        {{
+          apos.area(data.widget,'card_filter',{
+            widgets: {
+              'fw-multi-criteria-filter': {
+                resource_cards_filters: resource_cards_filters
+              },
+              'fw-card-filter': {
+                resource_cards_tags: resource_cards_tags,
+                filter_id: unique_filter_id
+              }
+            }
+          })
+        }}
+      </div>
+      <div class="col-md-9 podcast-results-outer" data-filter="filter-cards-container">
+        <div class="partners-results-container" data-scroll-target="partners-results-container" data-filter="filter-results-container">
+          <p class="podcast-results-summary"></p>
+      {%- endif %}
+          {%- set align_center = data.widget.align_center %}
+          {{
+            apos.area(data.widget, 'resource_cards', {
+                widgets:{
+                'fw-resource-card': {
+                  align_center:  align_center,
+                  column_count: cards_column_count,
+                  is_filter_present: is_filter,
+                  inlineWidget: true
+                },
+                'fw-calendar-update-card': {},
+                'fw-section-buttons':{
+                  fwOuterHTML: '<div class="align-center mt-sm">{<% yield %>}</div>'
+                },
+                'fw-image-preview-card': {}
+              },
+              inlineWidgets: true
+            })
+          }}
+      {%- if is_filter == 'yes'%}
+        </div>
+      </div>
+      {%- endif %}
+	  </div>
+  </div>
+</section>
